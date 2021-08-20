@@ -34,9 +34,11 @@ It will respond to requests that have `Accept: text/javascript` in their headers
 Add some JavaScript to insert the review partial at the beginning of the `#reviews` div.
 
 ```js
-document.getElementById('reviews').insertAdjacentHTML('afterBegin', '<%=j render @review %>')
+document.getElementById("reviews").insertAdjacentHTML("afterBegin", "<%=j render @review %>")
+document.getElementById("reviews-count").innerText = "<%= pluralize @restaurants.reviews.size, 'review' %>"
 ```
 
+*Make sure to add `id="reviews-count"` to the reviews counter.*
 
 ### What are the `js.erb` views?
 
@@ -75,7 +77,7 @@ Check your app/javascript/packs/application.js
 ### Stimulus Controller
 
 ```shell
-touch app/javascript/controllers/collapsible_form_controller.js
+touch app/javascript/controllers/collapsible_controller.js
 ```
 ```js
 import { Controller } from "stimulus";
@@ -90,12 +92,12 @@ export default class extends Controller {
 
 ### Data-controller
 
-Connect the component to the `collapsible_form` controller by adding a `data-controller` attribute.
+Connect the component to the `collapsible` controller by adding a `data-controller` attribute.
 
 ```erb
 <!-- app/views/restaurants/show.html.erb -->
 
-<div data-controller="collapsible-form"> <!-- create a container for our new component -->
+<div data-controller="collapsible"> <!-- create a container for our new component -->
   <button class="btn btn-outline-primary">Leave a review</button>
 
   <%= simple_form_for([ @restaurant, @review ], remote: true) do |f| %>
@@ -114,11 +116,11 @@ Set the `data-controller` in a div that contains both:
 
 ```erb
 <%= simple_form_for([ @restaurant, @review ],
-                    html: { data: { collapsible_form_target: 'form' } },
+                    html: { data: { collapsible_target: 'form' } },
                     remote: true) do |f| %>
 
 <!-- Simple form will generate a form tag like this: -->
-<form action="..." data-collapsible-form-target="form" ... >
+<form action="..." data-collapsible-target="form" ... >
 ```
 
 Syntax: `data-<controller-name>-target="targetName"`
@@ -165,9 +167,9 @@ Listening to the `click` event on the button (`addEventListener`):
 ```erb
 <!-- app/views/restaurants/show.html.erb -->
 
-<div data-controller="collapsible-form">
+<div data-controller="collapsible">
   <button class="btn btn-outline-primary"
-          data-action="click->collapsible-form#expandForm">Leave a review</button>
+          data-action="click->collapsible#expandForm">Leave a review</button>
   <!-- [...] -->
 </div>
 ```
@@ -194,16 +196,21 @@ Let’s expand the form!
 
 ### Settings
 
-Use data attributes to add settings to your component
+Use Stimulus values to add settings to your component
 
 ```erb
-  <div data-controller="collapsible-form" data-expanded-height="150px">
+  <div data-controller="collapsible" data-collapsible-height-value="150px">
 ```
 
 ```js
-expandForm(event) {
-  this.formTarget.style.height = this.element.dataset.expandedHeight
+export default class extends Controller {
+  static targets = [ 'form' ];
+  static values = { height: String }; // <-- Add this
+  // ...
+  expandForm(event) {
+  this.formTarget.style.height = this.heightValue
   event.currentTarget.remove() // Remove the button after expanding the form
+}
 }
 ```
 
@@ -244,13 +251,13 @@ environment.plugins.prepend('Provide',
 ### Adding the `data-action` in the view
 
 ```erb
-<div data-controller="collapsible-form" data-expanded-height=150>
+<div data-controller="collapsible" data-expanded-height=150>
   <!-- [...] -->
   <%= f.input :content, as: :text,
     label: false,
     input_html: {
       placeholder: 'Press enter to submit your review.',
-      data: { action: 'keydown->collapsible-form#submitOnEnter' }
+      data: { action: 'keydown->collapsible#submitOnEnter' }
     } %>
 </div>
 ```
@@ -258,9 +265,9 @@ environment.plugins.prepend('Provide',
 
 ## Stimulus takeaways
 
+- the `data-controller` should wrap all the Stimulus elements from the component
 - `querySelector` is replaced by `data-<controller-name>-target="targetName"`
-- `addEventListener` is replaced by `data-action`
-- the `data-controller` wraps the other elements
+- `querySelector` + `addEventListener` is replaced by `data-action`
 
 
 ### Stimulus syntax recap
@@ -268,6 +275,9 @@ environment.plugins.prepend('Provide',
 - `data-controller="controller-name"`
 - `data-<controller-name>-target="targetName"`
 - `data-action="event->controller-name#actionName"`
+
+And a bit more advanced:
+- `data-<controller-name>-<value-name>-value="<value>"`
 
 ---
 
